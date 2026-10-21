@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { decodeText, parseDelimitedText, tableFromRows } from '../import/table';
+import { decodeText, detectImportSource, parseDelimitedText, tableFromRows } from '../import/table';
 import { analyzeTables } from '../import/analyze';
 import { parseDateValue, parseTimeValue, parseTransactionType } from '../import/parseValues';
 import { parseAmount } from '../money';
@@ -50,6 +50,23 @@ describe('shark csv import', () => {
     expect(result.records.map((record) => record.type)).toEqual(['expense', 'income']);
   });
 
+  it('imports Suishouji exports with subcategories, member and project columns', () => {
+    const table = tableFromRows('随手记账单.csv', [
+      ['日期', '收支', '分类', '子分类', '金额', '备注', '账户', '成员', '项目'],
+      ['2026-10-01', '支出', '餐饮', '午餐', '35.50', '牛肉面', '微信', '我', '日常'],
+      ['2026-10-02', '收入', '工资', '月薪', '9500', '10月工资', '银行卡', '我', '工作'],
+      ['2026-10-03', '支出', '交通', '地铁', '6', '', '支付宝', '我', '日常'],
+    ]);
+    expect(detectImportSource(table)).toBe('suishouji');
+    const result = analyzeTables([table]);
+    expect(result.summary.validCount).toBe(3);
+    expect(result.summary.expenseTotal).toBe(41.5);
+    expect(result.summary.incomeTotal).toBe(9500);
+    expect(result.records.map((record) => record.type)).toEqual(['expense', 'income', 'expense']);
+    expect(result.records.map((record) => record.categoryName)).toEqual(['午餐', '月薪', '地铁']);
+    expect(result.records[0].accountName).toBe('微信');
+  });
+
   it('finds the header after title rows and handles quoted notes', () => {
     const text = [
       '鲨鱼记账明细',
@@ -96,5 +113,7 @@ describe('value parsing', () => {
     expect(parseTransactionType('收入')).toBe('income');
     expect(parseTransactionType('内部转账')).toBe('transfer');
     expect(parseTransactionType('不计收支')).toBe('ignore');
+    expect(parseTransactionType('流出')).toBe('expense');
+    expect(parseTransactionType('流入')).toBe('income');
   });
 });

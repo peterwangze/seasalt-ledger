@@ -229,7 +229,7 @@ export function SettingsPage() {
           </button>
           <button type="button" className="settings-row" onClick={() => setAboutOpen(true)}>
             <span className="settings-icon slate"><Icon name="waves" size={19} /></span>
-            <span className="settings-row-copy"><strong>关于海盐账本</strong><small>版本 1.1.0 · 本地优先</small></span>
+            <span className="settings-row-copy"><strong>关于海盐账本</strong><small>版本 1.2.0 · 本地优先</small></span>
             <Icon name="chevron-right" size={17} className="row-arrow" />
           </button>
           <button type="button" className="settings-row danger-row" onClick={() => setClearOpen(true)}>
@@ -340,9 +340,9 @@ export function SettingsPage() {
           <h3>把每一笔，过成生活。</h3>
           <p>一个轻盈、克制的本地记账本。没有社交，没有广告，没有云端账号，只有你自己的日子。</p>
           <div className="about-meta">
-            <span>版本 1.1.0</span>
+            <span>版本 1.2.0</span>
             <span>本地优先</span>
-            <span>支持导入鲨鱼记账</span>
+            <span>支持鲨鱼记账 / 随手记导入</span>
           </div>
           <p className="about-note">按自己的节奏记账，不必每一笔都完美。</p>
         </div>

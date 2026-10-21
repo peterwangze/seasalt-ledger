@@ -16,8 +16,8 @@ export interface ParsedDelimited {
 
 const HEADER_HINTS = [
   '日期', '时间', '收支类型', '收支', '账单类型', '交易类型', '类型', '金额',
-  '支出', '收入', '支出金额', '收入金额', '交易金额', '类别', '分类', '账户',
-  '支付方式', '备注', '说明', '商户', '交易对方', '对方',
+  '支出', '收入', '支出金额', '收入金额', '交易金额', '类别', '分类', '子分类', '二级分类',
+  '账户', '支付方式', '备注', '说明', '商户', '交易对方', '对方', '账本', '成员', '项目',
 ];
 
 function normalizeHeaderKey(value: string): string {
@@ -266,6 +266,19 @@ export function findHeader(
   return '';
 }
 
+export type ImportSource = 'shark' | 'suishouji' | 'generic';
+
+/** Detects the common export sources without changing the generic column mapper. */
+export function detectImportSource(table: RawTable): ImportSource {
+  const fileName = table.fileName.toLowerCase();
+  const headers = table.headers.join('|');
+  if (/随手记|mymoney|suishouji/.test(fileName) || /(^|\|)(子分类|二级分类|成员|账本)(\||$)/.test(headers)) {
+    return 'suishouji';
+  }
+  if (/鲨鱼|shark/.test(fileName)) return 'shark';
+  return 'generic';
+}
+
 export function columnValues(table: RawTable, header: string, limit = 80): string[] {
   if (!header) return [];
   const index = table.headers.indexOf(header);
@@ -329,7 +342,8 @@ export function defaultMapping(table: RawTable): ImportMapping {
       })
     : '';
 
-  let category = findHeader(headers, ['类别', '分类', '账目分类', '账单分类', '消费分类', '支出分类', '收入分类', '项目', 'tag', 'category']);
+  // 随手记常同时导出「分类 + 子分类」；子分类更具体，优先使用。
+  let category = findHeader(headers, ['子分类', '二级分类', '一级分类', '类别', '分类', '账目分类', '账单分类', '消费分类', '支出分类', '收入分类', '项目', 'tag', 'category']);
   if (!category) {
     const typeCandidate = findHeader(headers, ['类型'], { rows: table.rows });
     if (typeCandidate && typeCandidate !== type) category = typeCandidate;

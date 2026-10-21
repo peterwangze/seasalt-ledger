@@ -5,30 +5,52 @@ import { useLedger } from '../store/LedgerContext';
 import { navigate, useRoute } from '../store/router';
 import { useToast } from '../store/ToastContext';
 import { dateInputLabel, dateWithWeekday, isValidISODate, shortDate, todayISO, addDaysISO, weekdayCN } from '../lib/date';
-import { formatAmount, formatAmountInput } from '../lib/money';
+import { evaluateAmountExpression, formatAmount, formatAmountExpression } from '../lib/money';
 import { setActiveMonth } from '../lib/activeMonth';
-import { frequentCategories } from '../lib/stats';
+import { frequentCategories, getTransactionIndex } from '../lib/stats';
 import { AccountAvatar, CategoryAvatar, EmptyState, Segmented, TopBar } from '../components/Common';
 import { ConfirmSheet, Sheet } from '../components/Sheet';
 import { Icon } from '../components/Icon';
 
-const KEYPAD = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '.', '0', 'back'] as const;
+const KEYPAD = ['1', '2', '3', '+', '4', '5', '6', '-', '7', '8', '9', '*', '.', '0', 'back', '/'] as const;
+const OPERATORS = new Set(['+', '-', '*', '/']);
 const NOTE_SUGGESTIONS = ['早餐', '午餐', '晚餐', '打车', '买菜', '咖啡', '房租', '工资'];
+
+function lastOperand(raw: string): string {
+  return raw.split(/[+\-*/]/).pop() ?? '';
+}
 
 function nextAmount(raw: string, key: string): string {
   if (key === 'back') return raw.slice(0, -1);
+  if (OPERATORS.has(key)) {
+    if (!raw) return `0${key}`;
+    const last = raw.slice(-1);
+    if (OPERATORS.has(last)) return `${raw.slice(0, -1)}${key}`;
+    const cleaned = last === '.' ? raw.slice(0, -1) : raw;
+    return cleaned.length >= 36 ? cleaned : `${cleaned}${key}`;
+  }
   if (key === '.') {
-    if (raw.includes('.')) return raw;
-    return raw ? `${raw}.` : '0.';
+    if (!raw) return '0.';
+    if (OPERATORS.has(raw.slice(-1))) return `${raw}0.`;
+    const current = lastOperand(raw);
+    if (current.includes('.')) return raw;
+    return `${raw}.`;
   }
-  if (raw.includes('.')) {
-    const [, decimal] = raw.split('.');
+  const current = lastOperand(raw);
+  if (current.includes('.')) {
+    const [, decimal] = current.split('.');
     if (decimal.length >= 2) return raw;
+  } else {
+    if (current === '0') return `${raw.slice(0, -1)}${key}`;
+    if (current.length >= 9) return raw;
   }
-  const next = raw === '0' ? key : `${raw}${key}`;
-  const integerPart = next.split('.')[0];
-  if (integerPart.length > 9) return raw;
-  return next;
+  return raw.length >= 40 ? raw : `${raw}${key}`;
+}
+
+function keypadLabel(key: string): string {
+  if (key === '*') return '×';
+  if (key === '/') return '÷';
+  return key;
 }
 
 function vibrate() {
@@ -88,7 +110,10 @@ export function RecordPage() {
   const selectedCategory = categoryId ? categoryMap.get(categoryId) : undefined;
   const selectedAccount = accountMap.get(accountId);
   const selectedToAccount = accountMap.get(toAccountId);
-  const amount = Number(amountRaw || 0);
+  const amountResult = evaluateAmountExpression(amountRaw);
+  const amount = amountResult ?? 0;
+  const hasExpression = /[+\-*/]/.test(amountRaw);
+  const transactionIndex = useMemo(() => getTransactionIndex(state.transactions), [state.transactions]);
 
   const frequent = useMemo(() => {
     if (type === 'transfer') return [];
@@ -101,14 +126,13 @@ export function RecordPage() {
 
   const recordContext = useMemo(() => {
     const month = date.slice(0, 7);
+    const dayCount = transactionIndex.byDate.get(date)?.length ?? 0;
     let monthExpense = 0;
-    let dayCount = 0;
-    for (const transaction of state.transactions) {
-      if (transaction.date === date) dayCount += 1;
-      if (transaction.type === 'expense' && transaction.date.startsWith(month)) monthExpense += transaction.amount;
+    for (const transaction of transactionIndex.byMonth.get(month) ?? []) {
+      if (transaction.type === 'expense') monthExpense += transaction.amount;
     }
     return { monthExpense, dayCount };
-  }, [state.transactions, date]);
+  }, [transactionIndex, date]);
 
   const initialSnapshot = useMemo(() => JSON.stringify({
     type: existing?.type ?? initialType,
@@ -231,9 +255,14 @@ export function RecordPage() {
       if (categorySheet || accountSheet || noteSheet || dateSheet || confirmDelete || confirmDiscard) return;
       const target = event.target as HTMLElement | null;
       if (target?.closest('input, textarea, select, [contenteditable="true"]')) return;
-      if (/^\d$/.test(event.key) || event.key === '.') {
+      const normalizedKey = event.key === 'x' || event.key === 'X' || event.key === '×'
+        ? '*'
+        : event.key === '÷'
+          ? '/'
+          : event.key;
+      if (/^\d$/.test(normalizedKey) || normalizedKey === '.' || OPERATORS.has(normalizedKey)) {
         event.preventDefault();
-        pressKey(event.key);
+        pressKey(normalizedKey);
       } else if (event.key === 'Backspace') {
         event.preventDefault();
         pressKey('back');
@@ -316,10 +345,19 @@ export function RecordPage() {
               </span>
             ) : null}
           </div>
-          <div className={`amount-value ${amountRaw ? 'has-value' : ''}`} aria-live="polite" aria-label={`金额 ${amountRaw || '0'} 元`}>
+          <div
+            className={`amount-value ${amountRaw ? 'has-value' : ''} ${hasExpression ? 'has-expression' : ''}`}
+            aria-live="polite"
+            aria-label={`金额 ${amountRaw || '0'} 元`}
+          >
             <span className="amount-currency">¥</span>
-            <span>{formatAmountInput(amountRaw)}</span>
+            <span>{formatAmountExpression(amountRaw)}</span>
           </div>
+          {hasExpression ? (
+            <div className={`amount-result ${amountResult === null ? 'pending' : ''}`}>
+              = {amountResult === null ? '…' : `¥${formatAmount(amountResult)}`}
+            </div>
+          ) : null}
           <div className="amount-under">
             <span>{dateInputLabel(date, time)}</span>
             <span>·</span>
@@ -441,11 +479,25 @@ export function RecordPage() {
           <button
             key={key}
             type="button"
-            className={`keypad-key ${key === 'back' ? 'backspace' : ''}`}
+            className={`keypad-key ${key === 'back' ? 'backspace' : OPERATORS.has(key) ? 'operator' : ''}`}
             onClick={() => pressKey(key)}
-            aria-label={key === 'back' ? '退格' : key === '.' ? '小数点' : key}
+            aria-label={
+              key === 'back'
+                ? '退格'
+                : key === '.'
+                  ? '小数点'
+                  : key === '+'
+                    ? '加'
+                    : key === '-'
+                      ? '减'
+                      : key === '*'
+                        ? '乘'
+                        : key === '/'
+                          ? '除'
+                          : key
+            }
           >
-            {key === 'back' ? <Icon name="chevron-left" size={24} strokeWidth={1.8} /> : key}
+            {key === 'back' ? <Icon name="chevron-left" size={24} strokeWidth={1.8} /> : keypadLabel(key)}
           </button>
         ))}
       </div>

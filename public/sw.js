@@ -1,4 +1,4 @@
-const CACHE_NAME = 'seasalt-ledger-v2';
+const CACHE_NAME = 'seasalt-ledger-v3';
 const ROOT = new URL('./', self.location.href).href;
 const CORE_ASSETS = [
   ROOT,

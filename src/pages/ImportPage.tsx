@@ -7,10 +7,10 @@ import { numericDate, todayISO } from '../lib/date';
 import { setActiveMonth } from '../lib/activeMonth';
 import { formatAmount } from '../lib/money';
 import { analyzeTables } from '../lib/import/analyze';
-import { defaultMapping, readTabularFile, type RawTable } from '../lib/import/table';
+import { defaultMapping, detectImportSource, readTabularFile, type ImportSource, type RawTable } from '../lib/import/table';
 import { Icon } from '../components/Icon';
 import { Sheet } from '../components/Sheet';
-import { ImportIssueList, TopBar } from '../components/Common';
+import { ImportIssueList, Segmented, TopBar } from '../components/Common';
 
 interface FileError {
   fileName: string;
@@ -29,6 +29,28 @@ function formatImportRange(minDate?: string, maxDate?: string): string {
     return `${minYear}年${Number(minDate.slice(5, 7))}月${Number(minDate.slice(8, 10))}日 — ${Number(maxDate.slice(8, 10))}日`;
   }
   return `${minYear}年${Number(minDate.slice(5, 7))}月${Number(minDate.slice(8, 10))}日 — ${Number(maxDate.slice(5, 7))}月${Number(maxDate.slice(8, 10))}日`;
+}
+
+const GUIDE_STEPS = {
+  shark: [
+    ['打开「我的」', '在鲨鱼记账底部导航进入「我的」。'],
+    ['进入「设置」', '找到「导出数据」或「导出账单」。'],
+    ['导出并发送到电脑', '选择 CSV / Excel，通过微信、邮件或 AirDrop 发到电脑。'],
+    ['回到这里上传', '可以一次选中多年的账单文件，系统会逐份识别。'],
+  ],
+  suishouji: [
+    ['打开随手记', '进入「我的」，找到「设置」或「高级功能」。'],
+    ['备份与同步', '选择「导出数据 Excel」，导出账单流水。'],
+    ['发送到电脑', '把导出的 CSV / Excel 通过微信、邮件或 AirDrop 发到电脑。'],
+    ['回到这里上传', '支持多文件；会优先使用「子分类」，账户和备注一并保留。'],
+  ],
+} as const;
+
+function sourceLabel(source: ImportSource | 'mixed' | null): string {
+  if (source === 'shark') return '鲨鱼记账';
+  if (source === 'suishouji') return '随手记';
+  if (source === 'mixed') return '多来源';
+  return '通用格式';
 }
 
 const MAPPING_FIELDS: Array<{ key: keyof ImportMapping; label: string; hint?: string }> = [
@@ -57,6 +79,12 @@ export function ImportPage() {
   const [mappingOpen, setMappingOpen] = useState(false);
   const [draftMapping, setDraftMapping] = useState<ImportMapping | null>(null);
   const [importing, setImporting] = useState(false);
+  const [guide, setGuide] = useState<'shark' | 'suishouji'>('shark');
+  const source = useMemo<ImportSource | 'mixed' | null>(() => {
+    if (!tables.length) return null;
+    const sources = new Set(tables.map(detectImportSource));
+    return sources.size === 1 ? [...sources][0] : 'mixed';
+  }, [tables]);
 
   const summary = analysis?.summary;
   const duplicateInfo = useMemo(() => {
@@ -204,13 +232,13 @@ export function ImportPage() {
             <div className="import-orbit" aria-hidden="true">
               <span className="import-orbit-one" />
               <span className="import-orbit-two" />
-              <span className="import-fish"><Icon name="fish" size={34} strokeWidth={1.5} /></span>
+              <span className="import-fish"><Icon name="file-spreadsheet" size={34} strokeWidth={1.5} /></span>
               <span className="import-spark">+</span>
             </div>
-            <p className="eyebrow">IMPORT FROM SHARK</p>
-            <h1>导入鲨鱼记账账单</h1>
+            <p className="eyebrow">IMPORT FROM YOUR LEDGER</p>
+            <h1>导入旧账单</h1>
             <p className="import-description">
-              支持鲨鱼记账导出的 CSV / Excel 文件。原分类、账户和备注都会尽量保留，重复导入时会自动提醒。
+              支持鲨鱼记账、随手记导出的 CSV / Excel 文件。原分类、子分类、账户和备注都会尽量保留，重复导入时会自动提醒。
             </p>
           </section>
 
@@ -258,15 +286,27 @@ export function ImportPage() {
             <div className="panel-head">
               <div>
                 <p className="eyebrow">HOW TO EXPORT</p>
-                <h2>从鲨鱼记账导出</h2>
+                <h2>从记账 App 导出</h2>
               </div>
               <span className="panel-badge">4 步</span>
             </div>
+            <Segmented
+              value={guide}
+              onChange={setGuide}
+              ariaLabel="选择导出教程"
+              className="import-source-switch"
+              options={[
+                { value: 'shark', label: '鲨鱼记账' },
+                { value: 'suishouji', label: '随手记' },
+              ]}
+            />
             <ol className="steps">
-              <li><span>01</span><div><strong>打开「我的」</strong><p>在鲨鱼记账底部导航进入「我的」。</p></div></li>
-              <li><span>02</span><div><strong>进入「设置」</strong><p>找到「导出数据」或「导出账单」。</p></div></li>
-              <li><span>03</span><div><strong>导出并发送到电脑</strong><p>选择 CSV / Excel，通过微信、邮件或 AirDrop 发到电脑。</p></div></li>
-              <li><span>04</span><div><strong>回到这里上传</strong><p>可以一次选中多年的账单文件，系统会逐份识别。</p></div></li>
+              {GUIDE_STEPS[guide].map(([title, description], index) => (
+                <li key={title}>
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                  <div><strong>{title}</strong><p>{description}</p></div>
+                </li>
+              ))}
             </ol>
             <p className="help-tip">
               <Icon name="shield-check" size={14} />
@@ -277,8 +317,8 @@ export function ImportPage() {
           <section className="format-note">
             <Icon name="file-spreadsheet" size={18} />
             <div>
-              <strong>自动识别常见列名</strong>
-              <p>日期、收支类型、分类、账户、金额、备注；也支持支出/收入分成两列的文件。</p>
+              <strong>自动识别鲨鱼记账 / 随手记常见列名</strong>
+              <p>日期、收支类型、分类 / 子分类、账户、金额、备注；也支持支出/收入分成两列的文件。</p>
             </div>
           </section>
         </>
@@ -297,7 +337,10 @@ export function ImportPage() {
           <section className="import-file-card">
             <span className="file-icon"><Icon name="file-spreadsheet" size={22} /></span>
             <div className="file-main">
-              <strong>{summary.fileName}</strong>
+              <strong>
+                {summary.fileName}
+                <span className={`source-tag ${source ?? 'generic'}`}>{sourceLabel(source)}</span>
+              </strong>
               <span>
                 {summary.sheetName ? `${summary.sheetName} · ` : ''}
                 {summary.files.length ? `${summary.files.length} 个文件 · ` : ''}

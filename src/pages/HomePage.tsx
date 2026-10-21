@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useLedger } from '../store/LedgerContext';
 import { navigate } from '../store/router';
 import { useToast } from '../store/ToastContext';
-import { currentMonth, dayHeading, daysInMonth, greeting, monthOf, monthOverline, todayISO } from '../lib/date';
+import { currentMonth, dayHeading, daysInMonth, greeting, monthOverline, todayISO } from '../lib/date';
 import { getActiveMonth, setActiveMonth } from '../lib/activeMonth';
 import { formatAmount, percent } from '../lib/money';
-import { frequentCategories, groupByDay, monthTotals, transactionsInMonth } from '../lib/stats';
+import { frequentCategories, getTransactionIndex, groupByDay, monthTotals } from '../lib/stats';
 import { BrandMark, Icon } from '../components/Icon';
 import { ConfirmSheet } from '../components/Sheet';
 import { CategoryAvatar, EmptyState, MonthSwitcher } from '../components/Common';
@@ -13,33 +13,39 @@ import { TransactionRow } from '../components/TransactionRow';
 
 type Filter = 'all' | 'expense' | 'income';
 
+const INITIAL_VISIBLE_DAYS = 10;
+const LOAD_MORE_DAYS = 10;
+
 export function HomePage() {
   const { state, deleteTransaction, loadDemo } = useLedger();
   const toast = useToast();
   const [month, setMonthState] = useState(getActiveMonth);
   const [filter, setFilter] = useState<Filter>('all');
+  const [visibleDays, setVisibleDays] = useState(INITIAL_VISIBLE_DAYS);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
-  const monthsWithData = useMemo(
-    () => new Set(state.transactions.map((transaction) => monthOf(transaction.date))),
-    [state.transactions],
-  );
-  const monthTransactions = useMemo(
-    () => transactionsInMonth(state.transactions, month),
-    [state.transactions, month],
-  );
+  const transactionIndex = useMemo(() => getTransactionIndex(state.transactions), [state.transactions]);
+  const monthsWithData = transactionIndex.monthSet;
+  const monthTransactions = transactionIndex.byMonth.get(month) ?? [];
   const totals = useMemo(() => monthTotals(monthTransactions), [monthTransactions]);
   const visible = useMemo(
     () => (filter === 'all' ? monthTransactions : monthTransactions.filter((transaction) => transaction.type === filter)),
     [monthTransactions, filter],
   );
   const groups = useMemo(() => groupByDay(visible), [visible]);
+  const visibleGroups = useMemo(() => groups.slice(0, visibleDays), [groups, visibleDays]);
+  const hiddenDays = Math.max(0, groups.length - visibleGroups.length);
+  const hiddenCount = groups.slice(visibleDays).reduce((count, group) => count + group.transactions.length, 0);
   const categoryMap = useMemo(() => new Map(state.categories.map((category) => [category.id, category])), [state.categories]);
   const accountMap = useMemo(() => new Map(state.accounts.map((account) => [account.id, account])), [state.accounts]);
   const quickCategories = useMemo(
     () => frequentCategories(state.transactions, state.categories, 'expense', 4),
     [state.transactions, state.categories],
   );
+  useEffect(() => {
+    setVisibleDays(INITIAL_VISIBLE_DAYS);
+  }, [month, filter]);
+
   const budget = state.settings.monthlyBudget;
   const budgetPercent = percent(totals.expense, budget);
   const budgetLeft = budget - totals.expense;
@@ -195,7 +201,7 @@ export function HomePage() {
 
         {groups.length ? (
           <div className="transaction-groups">
-            {groups.map((group) => (
+            {visibleGroups.map((group) => (
               <section className="day-group" key={group.date}>
                 <header className="day-header">
                   <div className="day-label">
@@ -222,6 +228,16 @@ export function HomePage() {
                 </div>
               </section>
             ))}
+            {hiddenDays > 0 ? (
+              <button
+                type="button"
+                className="list-more"
+                onClick={() => setVisibleDays((count) => count + LOAD_MORE_DAYS)}
+              >
+                <span>加载更早的明细</span>
+                <small>还有 {hiddenDays} 天 · {hiddenCount} 笔</small>
+              </button>
+            ) : null}
           </div>
         ) : emptyLedger ? (
           <div className="onboarding-card">

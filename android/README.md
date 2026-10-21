@@ -1,7 +1,7 @@
 # Android 打包
 
 - 应用包名：`com.seasalt.ledger`
-- 版本：`1.1.0`（versionCode `1`）
+- 版本：`1.2.0`（versionCode `2`）
 - 最低 Android：8.0（API 24）
 - 目标/编译 SDK：36
 - 技术容器：Capacitor 8 + Android SystemBars / Filesystem / Share / App
@@ -65,7 +65,7 @@ Release 签名材料位于（均被 `.gitignore` 忽略）：
 ## 安装
 
 ```bash
-adb install -r releases/SeaSaltLedger-1.1.0.apk
+adb install -r SeaSaltLedger-1.2.0.apk
 ```
 
 或在手机上打开 APK 文件，允许“安装未知应用”。
@@ -75,8 +75,8 @@ adb install -r releases/SeaSaltLedger-1.1.0.apk
 修改 `android/app/build.gradle`：
 
 ```gradle
-versionCode 2          // 每次发布递增
-versionName "1.1.1"
+versionCode 3          // 每次发布递增
+versionName "1.2.1"
 ```
 
 ## 验证记录
@@ -85,8 +85,10 @@ versionName "1.1.1"
 
 - `adb install -r` 安装成功，`MainActivity` 正常冷启动；
 - 首页、统计页、记账页渲染正常；
+- 金额计算器 `1 + 2 × 3 = 7` 能保存；
+- 统计页「全部」模式能显示累计收支和年度走势；
 - 原生返回键从统计页回到首页；打开月份 Sheet 时，返回键先关闭 Sheet；
-- 导入页能调起 Android DocumentsUI 文件选择器；
+- 导入页能调起 Android DocumentsUI 文件选择器；随手记格式由 Web E2E 与单元测试验证；
 - 设置页「导出全部账单」能生成 CSV 并调起系统分享面板。
 
 未覆盖：Android 8–15 各厂商 WebView 的逐一回归，以及真实应用商店审核流程。

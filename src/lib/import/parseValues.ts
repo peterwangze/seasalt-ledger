@@ -199,8 +199,8 @@ export function parseTransactionType(value: unknown): ParsedTransactionType {
   if (!text) return null;
   if (/不计收支|不计入|不统计|ignore/i.test(text)) return 'ignore';
   if (/转账|内部转|转出|转入/.test(text) && !/转入收入|转出支出/.test(text)) return 'transfer';
-  if (/收入|入账|收款|进账|赚/.test(text)) return 'income';
-  if (/支出|出账|消费|付款|花/.test(text)) return 'expense';
+  if (/流入|转入收入|收入|入账|收款|进账|赚/.test(text)) return 'income';
+  if (/流出|转出支出|支出|出账|消费|付款|花/.test(text)) return 'expense';
   return null;
 }
 

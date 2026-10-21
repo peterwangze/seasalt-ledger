@@ -41,11 +41,14 @@ try {
   await page.goto(baseURL, { waitUntil: 'networkidle' });
   await page.waitForSelector('.home-page');
 
-  // Add a record with the physical keyboard (the on-screen keypad also exists).
+  // Add a record using the calculator keypad: 60 + 6.6 = 66.60.
   await page.goto(new URL('#/record', baseURL).href, { waitUntil: 'networkidle' });
   await page.waitForSelector('.record-page');
-  await page.keyboard.type('66.6');
-  await page.keyboard.press('Enter');
+  for (const label of ['6', '0', '加', '6', '小数点', '6']) {
+    await page.locator(`.keypad-key[aria-label="${label}"]`).click();
+  }
+  assert((await page.locator('.amount-result').innerText()).includes('¥66.60'), 'Calculator expression did not evaluate to 66.60');
+  await page.locator('.save-button').click();
   await page.waitForSelector('.home-page');
   await page.waitForTimeout(700);
   const firstRow = await page.locator('.tx-row').first().innerText();
@@ -75,6 +78,10 @@ try {
   await page.locator('.stats-mode-switch button').filter({ hasText: '年度' }).click();
   await page.waitForTimeout(250);
   assert((await page.locator('.year-bar').count()) === 12, 'Annual chart did not render 12 months');
+  await page.locator('.stats-mode-switch button').filter({ hasText: '全部' }).click();
+  await page.waitForTimeout(250);
+  assert(await page.locator('.all-time-trend-panel').isVisible(), 'All-time statistics panel did not render');
+  assert((await page.locator('.all-year-chart .year-bar').count()) >= 1, 'All-time yearly chart did not render');
   await page.locator('.stats-mode-switch button').filter({ hasText: '月度' }).click();
 
   // Calendar day drill-down and add-for-day entry.
@@ -94,15 +101,27 @@ try {
   await page.waitForTimeout(300);
   assert(await page.locator('.search-page').isVisible(), 'Search page did not render');
 
-  // Import landing and settings render, with import living under settings.
+  // Import landing, Suishouji detection, and settings entry.
   await page.goto(new URL('#/import', baseURL).href, { waitUntil: 'networkidle' });
   await page.waitForSelector('.dropzone');
+  const suishoujiCsv = [
+    '日期,收支,分类,子分类,金额,备注,账户,成员,项目',
+    '2026-10-01,支出,餐饮,午餐,35.50,牛肉面,微信,我,日常',
+    '2026-10-02,收入,工资,月薪,9500,10月工资,银行卡,我,工作',
+  ].join('\r\n');
+  await page.locator('input[type=file]').setInputFiles({
+    name: '随手记账单.csv',
+    mimeType: 'text/csv',
+    buffer: Buffer.from(`\uFEFF${suishoujiCsv}`, 'utf8'),
+  });
+  await page.waitForSelector('.import-file-card');
+  assert((await page.locator('.source-tag').innerText()).includes('随手记'), 'Suishouji source was not detected');
   await page.goto(new URL('#/settings', baseURL).href, { waitUntil: 'networkidle' });
   await page.waitForSelector('.settings-page');
   assert(await page.locator('.import-banner').isVisible(), 'Import entry point missing from settings');
 
   if (errors.length) throw new Error(`Console errors: ${errors.join(' | ')}`);
-  console.log('E2E smoke passed: record, persist, quick entry, monthly/annual stats, calendar, search, settings.');
+  console.log('E2E smoke passed: calculator, persist, quick entry, monthly/annual/all-time stats, Suishouji import, calendar, search, settings.');
 } finally {
   await browser.close();
 }

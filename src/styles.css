@@ -7263,3 +7263,162 @@ body {
   }
 }
 
+
+/* v1.2.0 — large-ledger list, calculator and all-time stats */
+.day-group {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 240px;
+}
+
+.list-more {
+  display: flex;
+  width: 100%;
+  min-height: 54px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  margin-top: 14px;
+  border: 1px dashed var(--line);
+  border-radius: 18px;
+  color: var(--primary);
+  background: rgba(255, 253, 248, 0.62);
+}
+
+.list-more span {
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.list-more small {
+  color: var(--muted-light);
+  font-size: 9.5px;
+}
+
+.amount-value.has-expression {
+  font-size: clamp(28px, 8vw, 40px);
+  letter-spacing: -0.04em;
+}
+
+.amount-result {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  margin-top: 1px;
+  padding: 0 8px;
+  border-radius: 7px;
+  color: var(--primary);
+  background: var(--primary-soft);
+  font-family: var(--font-number);
+  font-size: 12.5px;
+}
+
+.amount-result.pending {
+  color: var(--muted-light);
+}
+
+.keypad {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.keypad-key.operator {
+  color: var(--primary);
+  background: var(--primary-soft);
+  font-weight: 600;
+}
+
+.stats-scope-pill {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--primary);
+  background: rgba(255, 253, 248, 0.72);
+  font-size: 11px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.all-year-chart .year-bar em {
+  font-size: 8px;
+}
+
+.trend-range {
+  color: var(--muted-light);
+  font-size: 9px;
+}
+
+.import-source-switch {
+  margin: 8px 0 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 253, 248, 0.64);
+}
+
+.source-tag {
+  display: inline-flex;
+  min-height: 18px;
+  align-items: center;
+  margin-left: 7px;
+  padding: 0 6px;
+  border-radius: 6px;
+  color: var(--primary);
+  background: var(--primary-soft);
+  font-size: 8.5px;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+
+.source-tag.suishouji {
+  color: #9b6135;
+  background: #f7e9da;
+}
+
+.source-tag.mixed,
+.source-tag.generic {
+  color: var(--muted);
+  background: var(--surface-soft);
+}
+
+.all-time-split {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 13px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(248, 243, 233, 0.14);
+}
+
+.all-time-split div {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.all-time-split span {
+  color: rgba(248, 243, 233, 0.5);
+  font-size: 8.5px;
+}
+
+.all-time-split strong {
+  overflow: hidden;
+  color: rgba(248, 243, 233, 0.86);
+  font-family: var(--font-number);
+  font-size: 12px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.all-year-chart {
+  justify-content: space-around;
+}
+
+.all-year-chart .year-bar {
+  max-width: 64px;
+}

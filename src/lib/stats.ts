@@ -10,8 +10,66 @@ export interface MonthTotals {
   count: number;
 }
 
+export interface TransactionIndex {
+  byMonth: Map<string, Transaction[]>;
+  byYear: Map<string, Transaction[]>;
+  byDate: Map<string, Transaction[]>;
+  monthSet: Set<string>;
+  yearSet: Set<number>;
+  categoryCounts: {
+    expense: Map<string, number>;
+    income: Map<string, number>;
+  };
+}
+
+const transactionIndexCache = new WeakMap<Transaction[], TransactionIndex>();
+
+/**
+ * Builds month/year/day indexes once per transactions array. Pages mount and
+ * unmount on every tab switch, so recomputing six years of data each time is
+ * unnecessary work.
+ */
+export function getTransactionIndex(transactions: Transaction[]): TransactionIndex {
+  const cached = transactionIndexCache.get(transactions);
+  if (cached) return cached;
+
+  const byMonth = new Map<string, Transaction[]>();
+  const byYear = new Map<string, Transaction[]>();
+  const byDate = new Map<string, Transaction[]>();
+  const monthSet = new Set<string>();
+  const yearSet = new Set<number>();
+  const categoryCounts = {
+    expense: new Map<string, number>(),
+    income: new Map<string, number>(),
+  };
+
+  for (const transaction of transactions) {
+    const month = transaction.date.slice(0, 7);
+    const year = transaction.date.slice(0, 4);
+    const monthList = byMonth.get(month) ?? [];
+    monthList.push(transaction);
+    byMonth.set(month, monthList);
+    const yearList = byYear.get(year) ?? [];
+    yearList.push(transaction);
+    byYear.set(year, yearList);
+    const dateList = byDate.get(transaction.date) ?? [];
+    dateList.push(transaction);
+    byDate.set(transaction.date, dateList);
+    monthSet.add(month);
+    yearSet.add(Number(year));
+    if (transaction.categoryId && (transaction.type === 'expense' || transaction.type === 'income')) {
+      const counts = categoryCounts[transaction.type];
+      counts.set(transaction.categoryId, (counts.get(transaction.categoryId) ?? 0) + 1);
+    }
+  }
+
+  const index: TransactionIndex = { byMonth, byYear, byDate, monthSet, yearSet, categoryCounts };
+  transactionIndexCache.set(transactions, index);
+  return index;
+}
+
 export function transactionsInMonth(transactions: Transaction[], month: string): Transaction[] {
-  return transactions.filter((transaction) => monthOf(transaction.date) === month);
+  return getTransactionIndex(transactions).byMonth.get(month) ?? [];
 }
 
 export function monthTotals(transactions: Transaction[]): MonthTotals {
@@ -79,12 +137,7 @@ export function frequentCategories(
   type: 'expense' | 'income',
   limit = 7,
 ): Category[] {
-  const counts = new Map<string, number>();
-  for (const transaction of transactions) {
-    if (transaction.type === type && transaction.categoryId) {
-      counts.set(transaction.categoryId, (counts.get(transaction.categoryId) ?? 0) + 1);
-    }
-  }
+  const counts = getTransactionIndex(transactions).categoryCounts[type];
   return categories
     .filter((category) => category.type === type)
     .sort((a, b) => {
@@ -233,8 +286,47 @@ export interface MonthPoint {
 }
 
 export function transactionsInYear(transactions: Transaction[], year: string | number): Transaction[] {
-  const prefix = `${year}-`;
-  return transactions.filter((transaction) => transaction.date.startsWith(prefix));
+  return getTransactionIndex(transactions).byYear.get(String(year)) ?? [];
+}
+
+export interface YearPoint {
+  year: number;
+  expense: number;
+  income: number;
+  balance: number;
+  count: number;
+}
+
+/** Aggregates all transactions by calendar year, sorted oldest first. */
+export function yearlyTotals(transactions: Transaction[]): YearPoint[] {
+  const totals = new Map<number, YearPoint>();
+  for (const transaction of transactions) {
+    const year = Number(transaction.date.slice(0, 4));
+    if (!Number.isFinite(year)) continue;
+    const point = totals.get(year) ?? { year, expense: 0, income: 0, balance: 0, count: 0 };
+    if (transaction.type === 'expense') point.expense += transaction.amount;
+    else if (transaction.type === 'income') point.income += transaction.amount;
+    point.count += 1;
+    totals.set(year, point);
+  }
+  return [...totals.values()]
+    .sort((a, b) => a.year - b.year)
+    .map((point) => ({
+      ...point,
+      expense: roundMoney(point.expense),
+      income: roundMoney(point.income),
+      balance: roundMoney(point.income - point.expense),
+    }));
+}
+
+export function transactionDateRange(transactions: Transaction[]): { min?: string; max?: string } {
+  let min: string | undefined;
+  let max: string | undefined;
+  for (const transaction of transactions) {
+    if (!min || transaction.date < min) min = transaction.date;
+    if (!max || transaction.date > max) max = transaction.date;
+  }
+  return { min, max };
 }
 
 export function monthlyTotalsForYear(transactions: Transaction[], year: string | number): MonthPoint[] {
@@ -321,6 +413,10 @@ export function yearAverageDivisor(year: string | number): number {
 
 export function activeMonthCount(transactions: Transaction[], year: string | number): number {
   return new Set(transactionsInYear(transactions, year).map((transaction) => transaction.date.slice(0, 7))).size;
+}
+
+export function activeMonthCountAll(transactions: Transaction[]): number {
+  return getTransactionIndex(transactions).monthSet.size;
 }
 
 export function currentStreak(transactions: Transaction[]): number {

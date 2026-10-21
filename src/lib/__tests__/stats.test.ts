@@ -1,12 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import type { Category, Transaction } from '../../types';
 import {
+  activeMonthCountAll,
   categoryBreakdown,
+  getTransactionIndex,
   groupByDay,
   monthTotals,
   monthlyTotalsForYear,
+  transactionDateRange,
   uniqueDays,
   weeklyTotals,
+  yearlyTotals,
 } from '../stats';
 
 const categories: Category[] = [
@@ -88,5 +92,29 @@ describe('ledger stats', () => {
       balance: 949.5,
       count: 3,
     });
+  });
+
+  it('indexes months, years and dates for large ledgers', () => {
+    const index = getTransactionIndex(transactions);
+    expect(index.byMonth.get('2026-10')).toHaveLength(3);
+    expect(index.byYear.get('2026')).toHaveLength(3);
+    expect(index.byDate.get('2026-10-01')).toHaveLength(2);
+    expect(index.monthSet.has('2026-10')).toBe(true);
+    expect(activeMonthCountAll(transactions)).toBe(1);
+    expect(getTransactionIndex(transactions)).toBe(index);
+  });
+
+  it('aggregates all-time yearly totals and date range', () => {
+    const all = [
+      ...transactions,
+      tx('4', '2024-01-15', 'expense', 12, 'food'),
+      tx('5', '2025-06-20', 'income', 200, 'salary'),
+    ];
+    expect(yearlyTotals(all)).toEqual([
+      { year: 2024, expense: 12, income: 0, balance: -12, count: 1 },
+      { year: 2025, expense: 0, income: 200, balance: 200, count: 1 },
+      { year: 2026, expense: 50.5, income: 1000, balance: 949.5, count: 3 },
+    ]);
+    expect(transactionDateRange(all)).toEqual({ min: '2024-01-15', max: '2026-10-02' });
   });
 });

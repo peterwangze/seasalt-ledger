@@ -6,7 +6,7 @@ import {
   daysInMonth,
   monthLabel,
   monthNumberLabel,
-  monthOf,
+  numericDate,
   todayISO,
 } from '../lib/date';
 import { getActiveMonth, setActiveMonth } from '../lib/activeMonth';
@@ -16,22 +16,26 @@ import {
   categoryBreakdown,
   comparisonWindow,
   dayCountForAverage,
+  getTransactionIndex,
   monthTotals,
   monthlyTotalsForYear,
   totalThroughDay,
+  transactionDateRange,
   transactionsInMonth,
   transactionsInYear,
   uniqueDays,
   weeklyTotals,
   yearAverageDivisor,
   yearComparison,
+  yearlyTotals,
 } from '../lib/stats';
 import type { CategorySlice } from '../lib/stats';
 import { EmptyState, MonthSwitcher, Segmented, YearSwitcher } from '../components/Common';
 import { Icon } from '../components/Icon';
 
 type FlowType = 'expense' | 'income';
-type StatsMode = 'month' | 'year';
+type StatsMode = 'month' | 'year' | 'all';
+type StatsScope = 'month' | 'year' | 'all';
 
 const OTHER_COLOR = '#B7B1A5';
 
@@ -84,7 +88,7 @@ function CategoryDonutPanel({
   slices: CategorySlice[];
   total: number;
   type: FlowType;
-  scope: 'month' | 'year';
+  scope: StatsScope;
 }) {
   const chartSlices = makeChartSlices(slices, total);
   return (
@@ -95,7 +99,7 @@ function CategoryDonutPanel({
           <h2>{type === 'expense' ? '钱花在了哪里' : '钱从哪里来'}</h2>
         </div>
         <span className="panel-badge">
-          {scope === 'year' ? '全年' : '本月'} · {slices.length} 类
+          {scope === 'all' ? '全部' : scope === 'year' ? '全年' : '本月'} · {slices.length} 类
         </span>
       </div>
       <div className="donut-layout">
@@ -141,13 +145,13 @@ function CategoryDonutPanel({
   );
 }
 
-function RankingPanel({ slices, scope }: { slices: CategorySlice[]; scope: 'month' | 'year' }) {
+function RankingPanel({ slices, scope }: { slices: CategorySlice[]; scope: StatsScope }) {
   return (
     <section className="panel ranking-panel">
       <div className="panel-head">
         <div>
           <p className="eyebrow">RANKING</p>
-          <h2>{scope === 'year' ? '年度分类排行' : '分类排行'}</h2>
+          <h2>{scope === 'all' ? '累计分类排行' : scope === 'year' ? '年度分类排行' : '分类排行'}</h2>
         </div>
         <span className="panel-badge">TOP {Math.min(slices.length, 8)}</span>
       </div>
@@ -185,16 +189,14 @@ export function StatsPage() {
   const [type, setType] = useState<FlowType>('expense');
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [selectedAllYear, setSelectedAllYear] = useState<number | null>(null);
   const isYear = mode === 'year';
+  const isAll = mode === 'all';
+  const scope: StatsScope = isAll ? 'all' : isYear ? 'year' : 'month';
 
-  const monthsWithData = useMemo(
-    () => new Set(state.transactions.map((transaction) => monthOf(transaction.date))),
-    [state.transactions],
-  );
-  const yearsWithData = useMemo(
-    () => new Set(state.transactions.map((transaction) => Number(transaction.date.slice(0, 4)))),
-    [state.transactions],
-  );
+  const transactionIndex = useMemo(() => getTransactionIndex(state.transactions), [state.transactions]);
+  const monthsWithData = transactionIndex.monthSet;
+  const yearsWithData = transactionIndex.yearSet;
 
   const monthTransactions = useMemo(
     () => transactionsInMonth(state.transactions, month),
@@ -236,32 +238,60 @@ export function StatsPage() {
     [yearChartPoints],
   );
 
-  const totals = isYear ? yearTotalsValue : monthTotalsValue;
-  const slices = isYear ? yearSlices : monthSlices;
+  const allTotalsValue = useMemo(() => monthTotals(state.transactions), [state.transactions]);
+  const allSlices = useMemo(
+    () => categoryBreakdown(state.transactions, state.categories, type),
+    [state.transactions, state.categories, type],
+  );
+  const allTypeTransactions = useMemo(
+    () => state.transactions.filter((transaction) => transaction.type === type),
+    [state.transactions, type],
+  );
+  const allTypeMonthCount = useMemo(
+    () => new Set(allTypeTransactions.map((transaction) => transaction.date.slice(0, 7))).size,
+    [allTypeTransactions],
+  );
+  const allYears = useMemo(() => yearlyTotals(state.transactions), [state.transactions]);
+  const allYearChartPoints = useMemo(
+    () => allYears.map((point) => ({ ...point, value: point[type] })),
+    [allYears, type],
+  );
+  const maxAllYear = useMemo(
+    () => allYearChartPoints.reduce((best, point) => (point.value > best.value ? point : best), allYearChartPoints[0]),
+    [allYearChartPoints],
+  );
+  const allDateRange = useMemo(() => transactionDateRange(state.transactions), [state.transactions]);
+
+  const totals = isAll ? allTotalsValue : isYear ? yearTotalsValue : monthTotalsValue;
+  const slices = isAll ? allSlices : isYear ? yearSlices : monthSlices;
   const total = totals[type];
-  const periodCount = (isYear ? yearTransactions : monthTransactions).filter((transaction) => transaction.type === type).length;
+  const activeTransactions = useMemo(() => {
+    if (isAll) return allTypeTransactions;
+    return (isYear ? yearTransactions : monthTransactions).filter((transaction) => transaction.type === type);
+  }, [isAll, allTypeTransactions, isYear, yearTransactions, monthTransactions, type]);
+  const periodCount = activeTransactions.length;
   const largest = useMemo(
-    () => (isYear ? yearTransactions : monthTransactions)
-      .filter((transaction) => transaction.type === type)
-      .reduce((max, transaction) => Math.max(max, transaction.amount), 0),
-    [isYear, yearTransactions, monthTransactions, type],
+    () => activeTransactions.reduce((max, transaction) => Math.max(max, transaction.amount), 0),
+    [activeTransactions],
   );
   const average = useMemo(() => {
+    if (isAll) return allTypeMonthCount > 0 ? total / allTypeMonthCount : 0;
     if (isYear) return total / yearAverageDivisor(year);
     const days = dayCountForAverage(month);
     return days > 0 ? total / days : 0;
-  }, [isYear, total, year, month]);
-  const periodDays = useMemo(
-    () => uniqueDays((isYear ? yearTransactions : monthTransactions).filter((transaction) => transaction.type === type)),
-    [isYear, yearTransactions, monthTransactions, type],
+  }, [isAll, allTypeMonthCount, isYear, total, year, month]);
+  const periodDays = useMemo(() => uniqueDays(activeTransactions), [activeTransactions]);
+  const activeMonths = useMemo(
+    () => (isAll ? allTypeMonthCount : activeMonthCount(yearTransactions, year)),
+    [isAll, allTypeMonthCount, yearTransactions, year],
   );
-  const activeMonths = useMemo(() => activeMonthCount(yearTransactions, year), [yearTransactions, year]);
   const yearLargestMonth = useMemo(() => {
     const point = yearChartPoints.reduce((best, item) => (item.value > best.value ? item : best), yearChartPoints[0]);
     return point?.value ? point : null;
   }, [yearChartPoints]);
 
   const comparison = useMemo(() => {
+    if (isAll) return { percentChange: null as number | null, previous: 0, label: '' };
     if (isYear) {
       const result = yearComparison(state.transactions, year, type);
       return {
@@ -281,16 +311,16 @@ export function StatsPage() {
       previous,
       label: '较上月同期',
     };
-  }, [isYear, state.transactions, year, type, month, monthTransactions]);
+  }, [isAll, isYear, state.transactions, year, type, month, monthTransactions]);
 
   useEffect(() => {
-    if (isYear) return;
+    if (isYear || isAll) return;
     const today = todayISO();
     const fallback = month === today.slice(0, 7)
       ? Math.ceil(Number(today.slice(8, 10)) / 7)
       : maxWeek?.week ?? 1;
     setSelectedWeek(fallback);
-  }, [month, type, maxWeek, isYear]);
+  }, [month, type, maxWeek, isYear, isAll]);
 
   useEffect(() => {
     if (!isYear) return;
@@ -299,10 +329,24 @@ export function StatsPage() {
     setSelectedMonth(fallback);
   }, [isYear, year, type, maxYearMonth]);
 
+  useEffect(() => {
+    if (!isAll) return;
+    const currentYear = todayISO().slice(0, 4);
+    const fallback = allYearChartPoints.find((point) => String(point.year) === currentYear)?.year
+      ?? allYearChartPoints[allYearChartPoints.length - 1]?.year
+      ?? null;
+    setSelectedAllYear(fallback);
+  }, [isAll, allYearChartPoints]);
+
   const selectedWeekPoint = weekPoints.find((point) => point.week === selectedWeek) ?? weekPoints[0];
   const selectedMonthPoint = yearChartPoints.find((point) => point.monthNumber === selectedMonth) ?? yearChartPoints[0];
+  const selectedAllYearPoint = allYearChartPoints.find((point) => point.year === selectedAllYear)
+    ?? allYearChartPoints[allYearChartPoints.length - 1];
   const hasData = slices.length > 0;
   const selectedMonthLabel = selectedMonthPoint ? monthNumberLabel(selectedMonthPoint.monthNumber) : '';
+  const allRangeLabel = allDateRange.min && allDateRange.max
+    ? `${numericDate(allDateRange.min)} — ${numericDate(allDateRange.max)}`
+    : '全部时间';
   const comparisonTone = comparison.percentChange === null || comparison.percentChange === 0
     ? 'compare-flat'
     : (comparison.percentChange > 0) === (type === 'expense')
@@ -329,7 +373,12 @@ export function StatsPage() {
           <h1>统计</h1>
           <p className="page-subtitle">看见花费的方向，也看见生活的样子。</p>
         </div>
-        {isYear ? (
+        {isAll ? (
+          <span className="stats-scope-pill">
+            <Icon name="calendar" size={14} />
+            全部时间
+          </span>
+        ) : isYear ? (
           <YearSwitcher
             year={year}
             onChange={(next) => {
@@ -360,6 +409,7 @@ export function StatsPage() {
           options={[
             { value: 'month', label: '月度' },
             { value: 'year', label: '年度' },
+            { value: 'all', label: '全部' },
           ]}
         />
         <Segmented
@@ -374,16 +424,24 @@ export function StatsPage() {
         />
       </div>
 
-      <section className={`stats-hero ${type}`} aria-label={`${isYear ? '年度' : '月度'}收支统计`}>
+      <section className={`stats-hero ${type}`} aria-label={`${isAll ? '全部' : isYear ? '年度' : '月度'}收支统计`}>
         <div className="stats-hero-top">
-          <span>{isYear ? `${year}年 · 总${type === 'expense' ? '支出' : '收入'}` : `${monthLabel(month)} · 总${type === 'expense' ? '支出' : '收入'}`}</span>
+          <span>
+            {isAll
+              ? `全部账单 · 总${type === 'expense' ? '支出' : '收入'}`
+              : isYear
+                ? `${year}年 · 总${type === 'expense' ? '支出' : '收入'}`
+                : `${monthLabel(month)} · 总${type === 'expense' ? '支出' : '收入'}`}
+          </span>
           <span className="stats-count">{periodCount} 笔</span>
         </div>
         <div className="stats-total">
           <span>¥</span>{formatAmount(total)}
         </div>
         <div className="stats-compare">
-          {comparison.percentChange === null ? (
+          {isAll ? (
+            <span className="compare-flat">{allRangeLabel} · 累计 {activeMonths} 个月</span>
+          ) : comparison.percentChange === null ? (
             <span className="compare-flat">{comparison.previous === 0 ? `${comparison.label.replace('较', '')}暂无记录` : `与${comparison.label.replace('较', '')}持平`}</span>
           ) : (
             <span className={comparisonTone}>
@@ -393,19 +451,35 @@ export function StatsPage() {
             </span>
           )}
         </div>
+        {isAll ? (
+          <div className="all-time-split" aria-label="全部账单累计收支">
+            <div>
+              <span>累计支出</span>
+              <strong>¥{formatAmount(allTotalsValue.expense)}</strong>
+            </div>
+            <div>
+              <span>累计收入</span>
+              <strong>¥{formatAmount(allTotalsValue.income)}</strong>
+            </div>
+            <div>
+              <span>累计结余</span>
+              <strong>¥{formatAmount(allTotalsValue.balance)}</strong>
+            </div>
+          </div>
+        ) : null}
         <div className="stats-mini-grid">
           <div>
-            <span>{isYear ? '月均' : '日均'}{type === 'expense' ? '支出' : '收入'}</span>
+            <span>{isAll ? '月均' : isYear ? '月均' : '日均'}{type === 'expense' ? '支出' : '收入'}</span>
             <strong>¥{formatAmount(average)}</strong>
           </div>
           <div>
-            <span>{isYear ? `最高月${type === 'expense' ? '支出' : '收入'}` : '最大单笔'}</span>
-            <strong>{isYear ? (yearLargestMonth ? `¥${formatAmount(yearLargestMonth.value)}` : '—') : `¥${formatAmount(largest)}`}</strong>
+            <span>{isAll ? '最大单笔' : isYear ? `最高月${type === 'expense' ? '支出' : '收入'}` : '最大单笔'}</span>
+            <strong>{isAll ? `¥${formatAmount(largest)}` : isYear ? (yearLargestMonth ? `¥${formatAmount(yearLargestMonth.value)}` : '—') : `¥${formatAmount(largest)}`}</strong>
           </div>
           <div>
-            <span>{isYear ? '记账天数' : type === 'expense' ? '结余' : '总支出'}</span>
+            <span>{isAll ? '记账天数' : isYear ? '记账天数' : type === 'expense' ? '结余' : '总支出'}</span>
             <strong>
-              {isYear
+              {isAll || isYear
                 ? `${periodDays} 天`
                 : type === 'expense'
                   ? `¥${formatAmount(totals.balance)}`
@@ -422,13 +496,19 @@ export function StatsPage() {
       {!hasData ? (
         <EmptyState
           title={
-            isYear
-              ? `这一年还没有${type === 'expense' ? '支出' : '收入'}`
-              : `这个月还没有${type === 'expense' ? '支出' : '收入'}`
+            isAll
+              ? `账本里还没有${type === 'expense' ? '支出' : '收入'}`
+              : isYear
+                ? `这一年还没有${type === 'expense' ? '支出' : '收入'}`
+                : `这个月还没有${type === 'expense' ? '支出' : '收入'}`
           }
           description={state.transactions.length ? '换个时间看看，或者记下今天的第一笔。' : '有了第一笔账单，这里就会长出属于你的统计。'}
           icon="chart-pie"
-          action={!isYear ? (
+          action={isAll ? (
+            <button type="button" className="button soft" onClick={() => navigate('/record')}>
+              <Icon name="plus" size={16} /> 记一笔
+            </button>
+          ) : !isYear ? (
             <button type="button" className="button soft" onClick={() => navigate(`/calendar?month=${month}`)}>
               <Icon name="calendar" size={16} /> 查看账单日历
             </button>
@@ -436,7 +516,49 @@ export function StatsPage() {
         />
       ) : (
         <>
-          {isYear ? (
+          {isAll ? (
+            <section className="panel year-trend-panel all-time-trend-panel">
+              <div className="panel-head">
+                <div>
+                  <p className="eyebrow">ALL-TIME RHYTHM</p>
+                  <h2>全部年度走势</h2>
+                </div>
+                <span className="trend-tooltip">
+                  {selectedAllYearPoint ? `${selectedAllYearPoint.year}年 · ¥${formatAmount(selectedAllYearPoint.value)}` : ''}
+                </span>
+              </div>
+              <div className="year-chart all-year-chart">
+                {allYearChartPoints.map((point) => {
+                  const height = maxAllYear?.value
+                    ? Math.max((point.value / maxAllYear.value) * 100, point.value > 0 ? 4 : 0)
+                    : 0;
+                  const active = selectedAllYearPoint?.year === point.year;
+                  const isCurrentYear = String(point.year) === todayISO().slice(0, 4);
+                  return (
+                    <button
+                      key={point.year}
+                      type="button"
+                      className={`year-bar ${active ? 'active' : ''} ${point.value === 0 ? 'zero' : ''} ${isCurrentYear ? 'current' : ''}`}
+                      onClick={() => {
+                        setSelectedAllYear(point.year);
+                        setYearState(String(point.year));
+                        setMonthState(`${point.year}-${month.slice(5, 7)}`);
+                        setMode('year');
+                      }}
+                      aria-label={`${point.year}年 ${formatAmount(point.value)} 元`}
+                    >
+                      <span className="year-bar-fill" style={{ height: `${height}%` }} />
+                      <em>{point.year}</em>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="year-chart-foot">
+                <span><i className="trend-dot" /> 点击柱子查看该年度统计</span>
+                <span className="trend-range">{allRangeLabel}</span>
+              </div>
+            </section>
+          ) : isYear ? (
             <section className="panel year-trend-panel">
               <div className="panel-head">
                 <div>
@@ -520,18 +642,22 @@ export function StatsPage() {
             </section>
           )}
 
-          <CategoryDonutPanel slices={slices} total={total} type={type} scope={isYear ? 'year' : 'month'} />
-          <RankingPanel slices={slices} scope={isYear ? 'year' : 'month'} />
+          <CategoryDonutPanel slices={slices} total={total} type={type} scope={scope} />
+          <RankingPanel slices={slices} scope={scope} />
 
-          {isYear ? (
+          {isAll || isYear ? (
             <section className="year-note-card">
               <div className="year-note-mark"><Icon name="waves" size={20} /></div>
               <div>
-                <p className="eyebrow">A YEAR IN A FEW LINES</p>
-                <h2>{year} 年，你认真记下了 {activeMonths} 个月</h2>
+                <p className="eyebrow">{isAll ? 'ALL THESE YEARS' : 'A YEAR IN A FEW LINES'}</p>
+                <h2>
+                  {isAll
+                    ? `${allDateRange.min ? allDateRange.min.slice(0, 4) : ''}${allDateRange.max ? `–${allDateRange.max.slice(0, 4)}` : ''} 年，你认真记下了 ${activeMonths} 个月`
+                    : `${year} 年，你认真记下了 ${activeMonths} 个月`}
+                </h2>
                 <p>
                   共 {periodDays} 天、{periodCount} 笔{type === 'expense' ? '支出' : '收入'}。
-                  {yearLargestMonth
+                  {isYear && yearLargestMonth
                     ? `${monthNumberLabel(yearLargestMonth.monthNumber)}是${type === 'expense' ? '花费' : '收入'}最多的一个月。`
                     : ''}
                   {slices[0] ? `占比最高的是「${slices[0].category.name}」。` : ''}
