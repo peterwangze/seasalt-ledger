@@ -1,0 +1,32 @@
+node_modules
+dist
+/data/
+*.local
+.env
+.env.*
+.DS_Store
+.screenshots
+coverage
+.vite
+*.tsbuildinfo
+.idea/
+*.iml
+*.log
+
+# Android build output and release signing material
+android/.gradle/
+android/build/
+android/app/build/
+android/local.properties
+android/keystore.properties
+android/keystore/
+android/app/release/
+android/capacitor-cordova-android-plugins/build/
+
+# Release binaries are distributed through GitHub Releases, not git.
+releases/*.apk
+releases/*.aab
+.render-android-assets.mjs
+.gradle-debug.log
+.gradle-release.log
+

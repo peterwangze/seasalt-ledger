@@ -1,0 +1,50 @@
+海盐账本 · Sea Salt Ledger
+Android release build
+=========================
+
+Application name : 海盐账本
+Package          : com.seasalt.ledger
+Version          : 1.1.0 (versionCode 1)
+Minimum Android  : 8.0 / API 24
+Target SDK       : 36
+Compile SDK      : 36
+ABI              : universal (no native ABI libs)
+APK              : SeaSaltLedger-1.1.0.apk
+APK size         : 6,949,653 bytes
+Built at         : 2026-10-21 (Asia/Shanghai)
+Tested on        : Android 16 / API 36 x86_64 emulator
+Verified         : install, cold/warm launch, navigation, back button, month sheet,
+                   DocumentsUI file picker, CSV share sheet
+
+SHA-256
+-------
+79D3597DB2744416F4CF929DD97158626735984A3C6C9193D363D8CCE15E2162
+
+Signature
+---------
+Scheme           : APK Signature Scheme v2
+Certificate DN   : CN=Sea Salt Ledger, OU=Mobile, O=Sea Salt, L=Shanghai, ST=Shanghai, C=CN
+Certificate SHA-256
+  fdb0639f494fe50a08f1277643e2db83b6007bbe8625f730f47ffdafdf15239a
+
+Signing material (local, gitignored)
+------------------------------------
+Keystore : android/keystore/seasalt-release.jks
+Alias    : seasalt
+Passwords: android/keystore.properties
+
+IMPORTANT
+---------
+Keep the keystore and its passwords safe and backed up. Future APK updates must be
+signed with this same key. Losing it means users cannot install newer versions
+over the current app.
+
+Install
+-------
+adb install -r SeaSaltLedger-1.1.0.apk
+
+Publishing note
+---------------
+This is a release-signed APK suitable for direct installation / sideloading.
+Google Play distribution additionally requires a developer account, an AAB
+upload and the store listing review process; that was not performed here.
