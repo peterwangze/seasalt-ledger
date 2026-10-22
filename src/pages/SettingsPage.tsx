@@ -145,10 +145,10 @@ export function SettingsPage() {
           <span>搬进来，也留条后路</span>
         </div>
         <button type="button" className="import-banner" onClick={() => navigate('/import')}>
-          <span className="import-banner-icon"><Icon name="fish" size={24} strokeWidth={1.6} /></span>
+          <span className="import-banner-icon"><Icon name="file-spreadsheet" size={24} strokeWidth={1.6} /></span>
           <span className="import-banner-copy">
-            <strong>导入鲨鱼记账</strong>
-            <small>保留原分类与备注，支持多文件</small>
+            <strong>导入旧账本</strong>
+            <small>支持鲨鱼记账 / 随手记，多文件</small>
           </span>
           <span className="import-banner-tag">开始导入</span>
           <Icon name="chevron-right" size={17} />
@@ -229,7 +229,7 @@ export function SettingsPage() {
           </button>
           <button type="button" className="settings-row" onClick={() => setAboutOpen(true)}>
             <span className="settings-icon slate"><Icon name="waves" size={19} /></span>
-            <span className="settings-row-copy"><strong>关于海盐账本</strong><small>版本 1.2.0 · 本地优先</small></span>
+            <span className="settings-row-copy"><strong>关于海盐账本</strong><small>版本 1.2.1 · 本地优先</small></span>
             <Icon name="chevron-right" size={17} className="row-arrow" />
           </button>
           <button type="button" className="settings-row danger-row" onClick={() => setClearOpen(true)}>
@@ -306,7 +306,7 @@ export function SettingsPage() {
           className="help-tabs"
           options={[
             { value: 'start', label: '开始记账' },
-            { value: 'import', label: '导入账单' },
+            { value: 'import', label: '旧账本' },
             { value: 'privacy', label: '数据安全' },
           ]}
         />
@@ -319,8 +319,8 @@ export function SettingsPage() {
         ) : null}
         {helpTab === 'import' ? (
           <div className="help-content">
-            <div><strong>从鲨鱼记账导出</strong><p>鲨鱼记账 → 我的 → 设置 → 导出数据。选择 CSV / Excel，把文件发到电脑。</p></div>
-            <div><strong>一次导入多年</strong><p>在导入页一次选中多个文件即可，系统会逐份识别。原分类、账户和备注都会保留，新分类会自动创建。</p></div>
+            <div><strong>从旧记账 App 导出</strong><p>鲨鱼记账：我的 → 设置 → 导出数据；随手记：我的 → 设置 / 高级功能 → 备份与同步 → 导出数据 Excel。把 CSV / Excel 发到电脑。</p></div>
+            <div><strong>一次导入多年</strong><p>在「导入旧账本」一次选中多个文件即可，系统会逐份识别。原分类、子分类、账户和备注都会保留，新分类会自动创建。</p></div>
             <div><strong>重复导入</strong><p>系统会和已导入的记录比对，发现疑似重复时默认跳过。如果同一天确实有两笔相同金额的账单，导入时仍会完整保留。</p></div>
             <div><strong>识别不准</strong><p>单文件导入时可以点「调整字段」，手动指定日期、金额、分类等列。</p></div>
           </div>
@@ -340,7 +340,7 @@ export function SettingsPage() {
           <h3>把每一笔，过成生活。</h3>
           <p>一个轻盈、克制的本地记账本。没有社交，没有广告，没有云端账号，只有你自己的日子。</p>
           <div className="about-meta">
-            <span>版本 1.2.0</span>
+            <span>版本 1.2.1</span>
             <span>本地优先</span>
             <span>支持鲨鱼记账 / 随手记导入</span>
           </div>

@@ -7,9 +7,9 @@
 
 一个为手机操作习惯设计的本地记账 Web App。界面轻盈、克制，所有账单只保存在当前浏览器里，不需要注册，也不会上传云端。
 
-支持一键导入 **鲨鱼记账** 导出的 CSV / Excel 账单，并能保留原分类、账户、备注和重复记录。
+支持一键导入 **鲨鱼记账 / 随手记** 等旧账本导出的 CSV / Excel 账单，并能保留原分类、子分类、账户、备注和重复记录。
 
-当前版本 **1.2.0**：在大账本性能、金额计算器、全部账单统计和随手记导入上完成一轮针对长期使用的优化；导入入口仍收在「我的」。
+当前版本 **1.2.1**：修复导入账单的日内排序和长列表滚动空白，并把记账键盘调整为更接近鲨鱼记账的布局；导入入口统一为「导入旧账本」。
 
 > 开源仓库：**[github.com/peterwangze/seasalt-ledger](https://github.com/peterwangze/seasalt-ledger)**  
 > Android APK 在 [Releases](https://github.com/peterwangze/seasalt-ledger/releases) 发布。
@@ -23,21 +23,21 @@
 </p>
 <p align="center">
   <img src="docs/year.png" width="30%" alt="年度统计" />
-  <img src="docs/import.png" width="30%" alt="导入账单" />
+  <img src="docs/import.png" width="30%" alt="导入旧账本" />
 </p>
 
 ## 功能
 
 - **手机优先**：自定义数字键盘、底部导航、Bottom Sheet、iOS 安全区适配、软键盘避让、PWA 可安装到桌面。
 - **记账**：支出 / 收入 / 转账；分类、账户、日期、时间、备注；编辑与左滑删除。
-- **金额计算器**：金额键盘支持 `+ − × ÷`，带运算优先级和实时结果，适合「28 + 19」这类现场心算。
+- **金额计算器**：鲨鱼式 4×4 键盘，支持 `+ −`、实时结果和「= / 完成」切换；备注与当前账户直接放在键盘上方。
 - **快捷记账**：首页只放高频分类，轻点即带分类进入记账页。
-- **明细**：按月查看、按日分组，收支筛选，月度预算进度与日均可用额度；大账本按 10 天分批加载，避免六年账单一次渲染卡顿。
+- **明细**：按月查看、按日分组，收支筛选，月度预算进度与日均可用额度；同一天后记录的账单优先显示，大账本按 10 天分批加载。
 - **统计**：月度 / 年度 / 全部三模式；分类占比、每周趋势、年度 12 个月走势、全部年度走势、分类排行、同比与累计小结。
 - **账单日历**：按月查看每日收支、颜色热度和单日明细；可从任意一天直接补记并返回该天。
 - **搜索**：按备注、分类、账户、金额搜索全部历史账单，支持时间范围与类型筛选。
 - **分类 / 账户管理**：新增自定义分类与账户、设置默认账户。
-- **账单导入（我的 → 导入账单）**：
+- **账单导入（我的 → 导入旧账本）**：
   - 支持**鲨鱼记账**和**随手记**导出的账单；
   - 支持 CSV（UTF-8 / GBK / UTF-16）与 XLSX / XLS；
   - 支持一次选择多个文件（例如多个年度账单）；
@@ -83,22 +83,22 @@ npm run dev -- --host 0.0.0.0
 
 当前提供可直接安装的签名 release APK：
 
-**[从 GitHub Releases 下载 SeaSaltLedger-1.2.0.apk](https://github.com/peterwangze/seasalt-ledger/releases/latest)**
+**[从 GitHub Releases 下载 SeaSaltLedger-1.2.1.apk](https://github.com/peterwangze/seasalt-ledger/releases/latest)**
 
 | 项目 | 值 |
 | --- | --- |
 | 包名 | `com.seasalt.ledger` |
-| 版本 | 1.2.0（versionCode 2） |
+| 版本 | 1.2.1（versionCode 3） |
 | 支持系统 | Android 8.0 / API 24 及以上 |
 | 目标 SDK | 36 |
-| APK 大小 | 6,952,657 bytes（约 6.6 MB） |
-| SHA-256 | `6945D442A0275C2A395731DD4B4213874202B8504CC9502B74B889ED02864769` |
+| APK 大小 | 6,953,073 bytes（约 6.6 MB） |
+| SHA-256 | `50B751E0B4A5CFE4AB61DB1A0D9157C4B9544CB09BFCCAD73DB6CFE6167F1EDE` |
 | 签名 | v2 APK Signature Scheme，证书 DN `CN=Sea Salt Ledger` |
 
 安装方式：
 
 ```bash
-adb install -r SeaSaltLedger-1.2.0.apk
+adb install -r SeaSaltLedger-1.2.1.apk
 ```
 
 或在手机上打开 APK，允许“安装未知应用”。这是侧载发布包；上架 Google Play 还需要开发者账号并上传 AAB。
@@ -106,11 +106,12 @@ adb install -r SeaSaltLedger-1.2.0.apk
 构建、签名、版本升级和原生桥接说明见 **[android/README.md](android/README.md)**。
 
 <p align="center">
-  <img src="docs/android-home.png" width="32%" alt="Android 运行界面" />
-  <img src="docs/android-stats.png" width="32%" alt="Android 统计页" />
+  <img src="docs/android-home.png" width="31%" alt="Android 运行界面" />
+  <img src="docs/android-stats.png" width="31%" alt="Android 统计页" />
+  <img src="docs/android-keypad.png" width="31%" alt="鲨鱼式金额键盘" />
 </p>
 
-已在本机 Android 16（API 36）模拟器验证：APK 安装与冷/热启动、首页 / 统计导航、金额计算器、全部统计、随手记文件选择、原生返回键关闭月份 Sheet，以及 CSV 导出调用系统分享面板。
+已在本机 Android 16（API 36）模拟器验证：APK 安装与冷/热启动、首页 / 统计导航、鲨鱼式金额键盘、全部统计、随手记文件选择、原生返回键关闭月份 Sheet，以及 CSV 导出调用系统分享面板。
 
 **签名密钥很重要**：`android/keystore/seasalt-release.jks` 和 `android/keystore.properties` 已被 `.gitignore` 忽略，请立即另存备份；后续更新必须使用同一密钥。
 
@@ -138,12 +139,12 @@ npm run test:e2e
 
 默认使用本机安装的 Chrome（通过 `CHROME_PATH` 可指定其他路径）。测试使用独立浏览器上下文，不会影响你平时浏览器里的账本。
 
-## 导入鲨鱼记账 / 随手记
+## 导入旧账本
 
 通用步骤：
 
 1. 在源 App 中导出 CSV 或 Excel，并发送到电脑。
-2. 在本应用进入 **我的 → 导入账单**，一次选中一个或多个文件。
+2. 在本应用进入 **我的 → 导入旧账本**，一次选中一个或多个文件。
 3. 检查识别结果，必要时点「调整字段」。
 4. 点击「导入 N 笔」。
 
@@ -197,7 +198,7 @@ releases/           构建信息（APK 通过 GitHub Releases 分发）
 docs/
   research.md       市场功能调研与本轮取舍
   native-packaging.md 原生封装指南
-  release-notes-v1.2.0.md
+  release-notes-v1.2.1.md
 ```
 
 ## 已知边界

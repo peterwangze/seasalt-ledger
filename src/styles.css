@@ -7265,11 +7265,6 @@ body {
 
 
 /* v1.2.0 — large-ledger list, calculator and all-time stats */
-.day-group {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 240px;
-}
-
 .list-more {
   display: flex;
   width: 100%;
@@ -7421,4 +7416,88 @@ body {
 
 .all-year-chart .year-bar {
   max-width: 64px;
+}
+
+/* v1.2.1 — Shark-like amount keypad */
+.keypad-meta {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--line);
+  background: rgba(249, 246, 238, 0.96);
+}
+
+.keypad-note,
+.keypad-account {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--muted);
+  background: var(--surface);
+  font-size: 11px;
+}
+
+.keypad-note {
+  flex: 1;
+  min-height: 34px;
+  padding: 0 10px;
+}
+
+.keypad-note span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.keypad-note.filled {
+  color: var(--ink-soft);
+}
+
+.keypad-account {
+  flex: none;
+  max-width: 42%;
+  min-height: 34px;
+  padding: 0 9px;
+  color: var(--ink-soft);
+}
+
+.keypad-account span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.keypad-key.date-key {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--primary);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.keypad-key.action-key {
+  color: #f8f3e9;
+  background: var(--primary);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.keypad-key.action-key.equals {
+  background: var(--coral);
+  font-family: var(--font-number);
+  font-size: 23px;
+}
+
+.keypad-key.action-key:active,
+.keypad-key.action-key.equals:active {
+  filter: brightness(0.94);
 }

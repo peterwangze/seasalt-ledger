@@ -224,7 +224,7 @@ export function ImportPage() {
 
   return (
     <main className="page import-page">
-      <TopBar title="导入账单" subtitle="把旧日账单，安稳地搬进来" />
+      <TopBar title="导入旧账本" subtitle="把旧日账单，安稳地搬进来" />
 
       {!analysis && !busy ? (
         <>
@@ -236,7 +236,7 @@ export function ImportPage() {
               <span className="import-spark">+</span>
             </div>
             <p className="eyebrow">IMPORT FROM YOUR LEDGER</p>
-            <h1>导入旧账单</h1>
+            <h1>导入旧账本</h1>
             <p className="import-description">
               支持鲨鱼记账、随手记导出的 CSV / Excel 文件。原分类、子分类、账户和备注都会尽量保留，重复导入时会自动提醒。
             </p>

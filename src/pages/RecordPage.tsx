@@ -12,7 +12,7 @@ import { AccountAvatar, CategoryAvatar, EmptyState, Segmented, TopBar } from '..
 import { ConfirmSheet, Sheet } from '../components/Sheet';
 import { Icon } from '../components/Icon';
 
-const KEYPAD = ['1', '2', '3', '+', '4', '5', '6', '-', '7', '8', '9', '*', '.', '0', 'back', '/'] as const;
+const KEYPAD = ['7', '8', '9', 'date', '4', '5', '6', '+', '1', '2', '3', '-', '.', '0', 'back', 'action'] as const;
 const OPERATORS = new Set(['+', '-', '*', '/']);
 const NOTE_SUGGESTIONS = ['早餐', '午餐', '晚餐', '打车', '买菜', '咖啡', '房租', '工资'];
 
@@ -113,6 +113,11 @@ export function RecordPage() {
   const amountResult = evaluateAmountExpression(amountRaw);
   const amount = amountResult ?? 0;
   const hasExpression = /[+\-*/]/.test(amountRaw);
+  const dateKeyLabel = date === todayISO()
+    ? '今天'
+    : date === addDaysISO(todayISO(), -1)
+      ? '昨天'
+      : shortDate(date);
   const transactionIndex = useMemo(() => getTransactionIndex(state.transactions), [state.transactions]);
 
   const frequent = useMemo(() => {
@@ -249,6 +254,23 @@ export function RecordPage() {
     }
   };
   saveRef.current = handleSave;
+
+  const handleKeypadAction = () => {
+    if (!hasExpression) {
+      handleSave();
+      return;
+    }
+    if (amountResult === null) {
+      toast('算式还没写完', 'error');
+      return;
+    }
+    if (amountResult <= 0) {
+      toast('金额需要大于 0', 'error');
+      return;
+    }
+    vibrate();
+    setAmountRaw(amountResult.toFixed(2));
+  };
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -431,28 +453,6 @@ export function RecordPage() {
           </section>
         )}
 
-        <section className="meta-row">
-          <button type="button" className="meta-chip" onClick={() => setDateSheet(true)}>
-            <Icon name="calendar" size={15} />
-            {dateInputLabel(date, time)}
-          </button>
-          <button type="button" className="meta-chip" onClick={() => setAccountSheet('account')}>
-            <Icon name="wallet" size={15} />
-            {selectedAccount?.name ?? '选择账户'}
-          </button>
-          <button
-            type="button"
-            className={`meta-chip note ${note ? 'filled' : ''}`}
-            onClick={() => {
-              setDraftNote(note);
-              setNoteSheet(true);
-            }}
-          >
-            <Icon name="pencil" size={14} />
-            <span>{note || '添加备注'}</span>
-          </button>
-        </section>
-
         <div className="record-context">
           <div>
             <span>当月已支出</span>
@@ -474,32 +474,75 @@ export function RecordPage() {
         </div>
       </div>
 
+      <div className="keypad-meta">
+        <button
+          type="button"
+          className={`keypad-note ${note ? 'filled' : ''}`}
+          onClick={() => {
+            setDraftNote(note);
+            setNoteSheet(true);
+          }}
+        >
+          <Icon name="pencil" size={14} />
+          <span>{note || '点击填写备注'}</span>
+        </button>
+        <button type="button" className="keypad-account" onClick={() => setAccountSheet('account')}>
+          {selectedAccount ? <AccountAvatar account={selectedAccount} size={20} /> : <Icon name="wallet" size={16} />}
+          <span>{selectedAccount?.name ?? '选择账户'}</span>
+        </button>
+      </div>
+
       <div className="keypad" role="group" aria-label="金额键盘">
-        {KEYPAD.map((key) => (
-          <button
-            key={key}
-            type="button"
-            className={`keypad-key ${key === 'back' ? 'backspace' : OPERATORS.has(key) ? 'operator' : ''}`}
-            onClick={() => pressKey(key)}
-            aria-label={
-              key === 'back'
-                ? '退格'
-                : key === '.'
-                  ? '小数点'
-                  : key === '+'
-                    ? '加'
-                    : key === '-'
-                      ? '减'
-                      : key === '*'
-                        ? '乘'
-                        : key === '/'
-                          ? '除'
-                          : key
-            }
-          >
-            {key === 'back' ? <Icon name="chevron-left" size={24} strokeWidth={1.8} /> : keypadLabel(key)}
-          </button>
-        ))}
+        {KEYPAD.map((key) => {
+          if (key === 'date') {
+            return (
+              <button
+                key={key}
+                type="button"
+                className="keypad-key date-key"
+                onClick={() => setDateSheet(true)}
+                aria-label="选择日期"
+              >
+                <Icon name="calendar" size={17} />
+                <span>{dateKeyLabel}</span>
+              </button>
+            );
+          }
+          if (key === 'action') {
+            return (
+              <button
+                key={key}
+                type="button"
+                className={`keypad-key action-key ${hasExpression ? 'equals' : ''}`}
+                onClick={handleKeypadAction}
+                aria-label={hasExpression ? '计算' : '完成并保存'}
+              >
+                {hasExpression ? '=' : '完成'}
+              </button>
+            );
+          }
+          return (
+            <button
+              key={key}
+              type="button"
+              className={`keypad-key ${key === 'back' ? 'backspace' : OPERATORS.has(key) ? 'operator' : ''}`}
+              onClick={() => pressKey(key)}
+              aria-label={
+                key === 'back'
+                  ? '退格'
+                  : key === '.'
+                    ? '小数点'
+                    : key === '+'
+                      ? '加'
+                      : key === '-'
+                        ? '减'
+                        : key
+              }
+            >
+              {key === 'back' ? <Icon name="chevron-left" size={24} strokeWidth={1.8} /> : keypadLabel(key)}
+            </button>
+          );
+        })}
       </div>
 
       <Sheet open={categorySheet} onClose={() => setCategorySheet(false)} title="全部分类" subtitle="选择这一笔的分类">

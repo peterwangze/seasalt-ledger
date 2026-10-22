@@ -124,6 +124,16 @@ export function compareTransactions(a: Transaction, b: Transaction): number {
   const timeB = b.time || '00:00';
   const timeCompare = timeB.localeCompare(timeA);
   if (timeCompare !== 0) return timeCompare;
+
+  // Shark exports often contain no time column. For rows from the same source
+  // file, the later row is the later record in that export, so show it first.
+  const aSource = a.importRef;
+  const bSource = b.importRef;
+  if (aSource && bSource && aSource.sourceFile === bSource.sourceFile
+    && aSource.sourceRow !== undefined && bSource.sourceRow !== undefined) {
+    const rowCompare = bSource.sourceRow - aSource.sourceRow;
+    if (rowCompare !== 0) return rowCompare;
+  }
   return b.createdAt.localeCompare(a.createdAt);
 }
 

@@ -44,11 +44,17 @@ try {
   // Add a record using the calculator keypad: 60 + 6.6 = 66.60.
   await page.goto(new URL('#/record', baseURL).href, { waitUntil: 'networkidle' });
   await page.waitForSelector('.record-page');
+  assert((await page.locator('.keypad-key').count()) === 16, 'Calculator keypad should have 16 keys');
+  assert(await page.locator('.keypad-note').isVisible(), 'Keypad note shortcut is missing');
+  assert(await page.locator('.keypad-account').isVisible(), 'Keypad account shortcut is missing');
   for (const label of ['6', '0', '加', '6', '小数点', '6']) {
     await page.locator(`.keypad-key[aria-label="${label}"]`).click();
   }
   assert((await page.locator('.amount-result').innerText()).includes('¥66.60'), 'Calculator expression did not evaluate to 66.60');
-  await page.locator('.save-button').click();
+  assert((await page.locator('.action-key').innerText()).trim() === '=', 'Expression action should be =');
+  await page.locator('.action-key').click();
+  assert((await page.locator('.action-key').innerText()).trim() === '完成', 'Action should switch to 完成 after =');
+  await page.locator('.action-key').click();
   await page.waitForSelector('.home-page');
   await page.waitForTimeout(700);
   const firstRow = await page.locator('.tx-row').first().innerText();

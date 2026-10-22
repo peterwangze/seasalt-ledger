@@ -1,7 +1,7 @@
 {
   "name": "海盐账本 · Sea Salt Ledger",
   "short_name": "海盐账本",
-  "description": "一个轻盈、干净的本地记账本，支持导入鲨鱼记账账单。",
+  "description": "一个轻盈、干净的本地记账本，支持导入鲨鱼记账 / 随手记等旧账本。",
   "lang": "zh-CN",
   "start_url": "./",
   "scope": "./",

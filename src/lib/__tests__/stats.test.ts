@@ -7,6 +7,7 @@ import {
   groupByDay,
   monthTotals,
   monthlyTotalsForYear,
+  sortTransactions,
   transactionDateRange,
   uniqueDays,
   weeklyTotals,
@@ -102,6 +103,19 @@ describe('ledger stats', () => {
     expect(index.monthSet.has('2026-10')).toBe(true);
     expect(activeMonthCountAll(transactions)).toBe(1);
     expect(getTransactionIndex(transactions)).toBe(index);
+  });
+
+  it('shows later source rows first when an imported day has no time', () => {
+    const source = 'shark-2026.csv';
+    const earlier = {
+      ...tx('earlier', '2026-10-01', 'expense', 12, 'food'),
+      importRef: { batchId: 'b', fingerprint: 'f1', occurrence: 1, sourceFile: source, sourceRow: 2 },
+    };
+    const later = {
+      ...tx('later', '2026-10-01', 'expense', 18, 'food'),
+      importRef: { batchId: 'b', fingerprint: 'f2', occurrence: 1, sourceFile: source, sourceRow: 4 },
+    };
+    expect(sortTransactions([earlier, later])[0].id).toBe('later');
   });
 
   it('aggregates all-time yearly totals and date range', () => {
