@@ -9,7 +9,7 @@
 
 支持一键导入 **鲨鱼记账 / 随手记** 等旧账本导出的 CSV / Excel 账单，并能保留原分类、子分类、账户、备注和重复记录。
 
-当前版本 **1.2.1**：修复导入账单的日内排序和长列表滚动空白，并把记账键盘调整为更接近鲨鱼记账的布局；导入入口统一为「导入旧账本」。
+当前版本 **1.2.2**：进一步移除页面级和逐行渲染的合成层，修复大数据量下快速滚动仍会出现空白的问题，并保留 1.2.1 的日内排序和新版记账键盘。
 
 > 开源仓库：**[github.com/peterwangze/seasalt-ledger](https://github.com/peterwangze/seasalt-ledger)**  
 > Android APK 在 [Releases](https://github.com/peterwangze/seasalt-ledger/releases) 发布。
@@ -83,22 +83,22 @@ npm run dev -- --host 0.0.0.0
 
 当前提供可直接安装的签名 release APK：
 
-**[从 GitHub Releases 下载 SeaSaltLedger-1.2.1.apk](https://github.com/peterwangze/seasalt-ledger/releases/latest)**
+**[从 GitHub Releases 下载 SeaSaltLedger-1.2.2.apk](https://github.com/peterwangze/seasalt-ledger/releases/latest)**
 
 | 项目 | 值 |
 | --- | --- |
 | 包名 | `com.seasalt.ledger` |
-| 版本 | 1.2.1（versionCode 3） |
+| 版本 | 1.2.2（versionCode 4） |
 | 支持系统 | Android 8.0 / API 24 及以上 |
 | 目标 SDK | 36 |
-| APK 大小 | 6,953,073 bytes（约 6.6 MB） |
-| SHA-256 | `50B751E0B4A5CFE4AB61DB1A0D9157C4B9544CB09BFCCAD73DB6CFE6167F1EDE` |
+| APK 大小 | 6,953,041 bytes（约 6.6 MB） |
+| SHA-256 | `EA88E880130A7E533D94D02901BAF9274AE7C72D01737089FF549A4C9FFBCF0D` |
 | 签名 | v2 APK Signature Scheme，证书 DN `CN=Sea Salt Ledger` |
 
 安装方式：
 
 ```bash
-adb install -r SeaSaltLedger-1.2.1.apk
+adb install -r SeaSaltLedger-1.2.2.apk
 ```
 
 或在手机上打开 APK，允许“安装未知应用”。这是侧载发布包；上架 Google Play 还需要开发者账号并上传 AAB。
@@ -111,7 +111,7 @@ adb install -r SeaSaltLedger-1.2.1.apk
   <img src="docs/android-keypad.png" width="31%" alt="鲨鱼式金额键盘" />
 </p>
 
-已在本机 Android 16（API 36）模拟器验证：APK 安装与冷/热启动、首页 / 统计导航、鲨鱼式金额键盘、全部统计、随手记文件选择、原生返回键关闭月份 Sheet，以及 CSV 导出调用系统分享面板。
+已在本机 Android 16（API 36）模拟器验证：APK 安装与冷/热启动、首页 / 统计导航、鲨鱼式金额键盘、全部统计、随手记文件选择、原生返回键关闭月份 Sheet，以及 CSV 导出调用系统分享面板。另导入 10,910 条合成账单，快速滚动当前月列表时记录和卡片正常绘制、无空白。
 
 **签名密钥很重要**：`android/keystore/seasalt-release.jks` 和 `android/keystore.properties` 已被 `.gitignore` 忽略，请立即另存备份；后续更新必须使用同一密钥。
 
@@ -198,7 +198,7 @@ releases/           构建信息（APK 通过 GitHub Releases 分发）
 docs/
   research.md       市场功能调研与本轮取舍
   native-packaging.md 原生封装指南
-  release-notes-v1.2.1.md
+  release-notes-v1.2.2.md
 ```
 
 ## 已知边界

@@ -4,23 +4,24 @@ Android release build
 
 Application name : 海盐账本
 Package          : com.seasalt.ledger
-Version          : 1.2.1 (versionCode 3)
+Version          : 1.2.2 (versionCode 4)
 Minimum Android  : 8.0 / API 24
 Target SDK       : 36
 Compile SDK      : 36
 ABI              : universal (no native ABI libs)
-APK              : SeaSaltLedger-1.2.1.apk
-APK size         : 6,953,073 bytes
+APK              : SeaSaltLedger-1.2.2.apk
+APK size         : 6,953,041 bytes
 Built at         : 2026-10-22 (Asia/Shanghai)
 Tested on        : Android 16 / API 36 x86_64 emulator
 Verified         : install, cold/warm launch, Shark-style keypad,
-                   equal/complete action, imported-day ordering, long list scrolling,
-                   all-time stats, Suishouji file picker, navigation, back button,
-                   month sheet, CSV share sheet
+                   equal/complete action, imported-day ordering,
+                   10,910-row import + fast scroll without blank rows,
+                   all-time stats, Suishouji file picker, navigation,
+                   back button, month sheet, CSV share sheet
 
 SHA-256
 -------
-50B751E0B4A5CFE4AB61DB1A0D9157C4B9544CB09BFCCAD73DB6CFE6167F1EDE
+EA88E880130A7E533D94D02901BAF9274AE7C72D01737089FF549A4C9FFBCF0D
 
 Signature
 ---------
@@ -43,7 +44,7 @@ over the current app.
 
 Install
 -------
-adb install -r SeaSaltLedger-1.2.1.apk
+adb install -r SeaSaltLedger-1.2.2.apk
 
 Publishing note
 ---------------

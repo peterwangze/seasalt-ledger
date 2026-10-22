@@ -1,7 +1,7 @@
 # Android 打包
 
 - 应用包名：`com.seasalt.ledger`
-- 版本：`1.2.1`（versionCode `3`）
+- 版本：`1.2.2`（versionCode `4`）
 - 最低 Android：8.0（API 24）
 - 目标/编译 SDK：36
 - 技术容器：Capacitor 8 + Android SystemBars / Filesystem / Share / App
@@ -65,7 +65,7 @@ Release 签名材料位于（均被 `.gitignore` 忽略）：
 ## 安装
 
 ```bash
-adb install -r SeaSaltLedger-1.2.1.apk
+adb install -r SeaSaltLedger-1.2.2.apk
 ```
 
 或在手机上打开 APK 文件，允许“安装未知应用”。
@@ -75,8 +75,8 @@ adb install -r SeaSaltLedger-1.2.1.apk
 修改 `android/app/build.gradle`：
 
 ```gradle
-versionCode 4          // 每次发布递增
-versionName "1.2.2"
+versionCode 5          // 每次发布递增
+versionName "1.2.3"
 ```
 
 ## 验证记录
@@ -87,7 +87,7 @@ versionName "1.2.2"
 - 首页、统计页、记账页渲染正常；
 - 鲨鱼式金额键盘能完成 `60 + 6.6 = 66.60`，完成键能保存；
 - 导入账单同一天按后记录优先显示；
-- 滚动长明细不再出现空白日期组；
+- 导入 10,910 条合成账单后快速滚动当前月明细，记录、日期组和卡片不再出现空白；
 - 统计页「全部」模式能显示累计收支和年度走势；
 - 原生返回键从统计页回到首页；打开月份 Sheet 时，返回键先关闭 Sheet；
 - 导入页能调起 Android DocumentsUI 文件选择器；随手记格式由 Web E2E 与单元测试验证；

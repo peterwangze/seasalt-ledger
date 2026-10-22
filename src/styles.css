@@ -159,7 +159,6 @@ select:focus-visible {
   z-index: 0;
   border-radius: 50%;
   pointer-events: none;
-  filter: blur(2px);
 }
 
 .ambient-one {
@@ -321,18 +320,9 @@ select:focus-visible {
 }
 
 .page-transition {
-  animation: page-in 0.42s cubic-bezier(0.22, 0.75, 0.2, 1) both;
-}
-
-@keyframes page-in {
-  from {
-    opacity: 0;
-    transform: translateY(9px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  /* Keep the route wrapper out of the compositor: animating a page that can be
+     thousands of pixels tall causes blank raster tiles in Android WebView. */
+  animation: none;
 }
 
 .eyebrow {
@@ -940,8 +930,6 @@ select:focus-visible {
   border-top: 1px solid rgba(222, 215, 202, 0.72);
   background: linear-gradient(to top, rgba(247, 244, 236, 0.99) 55%, rgba(247, 244, 236, 0.9));
   box-shadow: 0 -8px 28px rgba(43, 50, 43, 0.045);
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
   transform: translateX(-50%);
 }
 
@@ -1958,7 +1946,6 @@ select:focus-visible {
   touch-action: pan-y;
   user-select: none;
   cursor: pointer;
-  will-change: transform;
 }
 
 .tx-row:active {

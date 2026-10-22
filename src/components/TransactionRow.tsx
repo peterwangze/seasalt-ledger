@@ -138,7 +138,9 @@ export function TransactionRow({
       ) : null}
       <div
         className={`tx-row ${offset < 0 ? 'swiped' : ''}`}
-        style={{ transform: `translateX(${offset}px)`, transition: dragging ? 'none' : undefined }}
+        style={offset < 0 || dragging
+          ? { transform: `translateX(${offset}px)`, transition: dragging ? 'none' : undefined }
+          : undefined}
         role="button"
         tabIndex={0}
         aria-label={`${title}，${transaction.type === 'income' ? '收入' : transaction.type === 'expense' ? '支出' : '转账'} ${formatAmount(transaction.amount)} 元`}
